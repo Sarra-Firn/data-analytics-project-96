@@ -8,7 +8,7 @@ WITH paid_sessions AS (
     FROM
         sessions
     WHERE
-        medium IN ('cpc', 'cpm', 'cpa', 'youtube', 'cpp', 'tg', 'social')
+        medium NOT IN ('organic')
 ),
 last_paid_click AS (
     SELECT
