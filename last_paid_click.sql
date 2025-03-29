@@ -1,31 +1,21 @@
-WITH paid_sessions AS (
+WITH last_paid_click AS (
     SELECT
-        visitor_id,
-        visit_date,
-        source AS utm_source,
-        medium AS utm_medium,
-        campaign AS utm_campaign
-    FROM
-        sessions
-    WHERE
-        medium NOT IN ('organic')
-),
-last_paid_click AS (
-    SELECT
-        ps.visitor_id,
-        ps.visit_date,
-        ps.utm_source,
-        ps.utm_medium,
-        ps.utm_campaign,
+        s.visitor_id,
+        s.visit_date,
+        s.source AS utm_source,
+        s.medium AS utm_medium,
+        s.campaign AS utm_campaign,
         l.lead_id,
         l.created_at,
         l.amount,
         l.closing_reason,
         l.status_id,
-        ROW_NUMBER() OVER (PARTITION BY ps.visitor_id ORDER BY ps.visit_date DESC) AS rn
+        ROW_NUMBER() OVER (PARTITION BY s.visitor_id ORDER BY s.visit_date DESC) AS rn
     FROM
-        paid_sessions ps
-    LEFT JOIN leads l ON ps.visitor_id = l.visitor_id AND ps.visit_date <= l.created_at
+        sessions s
+    LEFT JOIN leads l ON s.visitor_id = l.visitor_id AND s.visit_date <= l.created_at
+    WHERE
+        s.medium NOT IN ('organic')
 )
 SELECT
     visitor_id,
@@ -48,4 +38,4 @@ ORDER BY
     utm_source ASC,
     utm_medium ASC,
     utm_campaign ASC
-    limit 10;
+LIMIT 10;
