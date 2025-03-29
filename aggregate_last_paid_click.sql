@@ -1,14 +1,4 @@
-SELECT
-    lp.visit_date,
-    lp.source AS utm_source,
-    lp.medium AS utm_medium,
-    lp.campaign AS utm_campaign,
-    COUNT(DISTINCT lp.visitor_id) AS visitors_count,  
-    COALESCE(SUM(ac.daily_spent), 0) AS total_cost,
-    SUM(CASE WHEN lp.lead_id IS NOT NULL THEN 1 ELSE 0 END) AS leads_count,
-    SUM(CASE WHEN lp.status_id = 142 OR lp.closing_reason = 'Успешно реализовано' THEN 1 ELSE 0 END) AS purchases_count,
-    SUM(lp.amount) AS revenue
-FROM (
+WITH sessions_leads AS (
     SELECT 
         s.visitor_id,
         s.visit_date,
@@ -23,8 +13,8 @@ FROM (
     LEFT JOIN leads l 
         ON s.visitor_id = l.visitor_id
         AND s.visit_date <= l.created_at
-) AS lp
-LEFT JOIN (
+),
+ads_cost AS (
     SELECT 
         utm_source,
         utm_medium,
@@ -42,20 +32,32 @@ LEFT JOIN (
         SUM(daily_spent) AS daily_spent
     FROM vk_ads
     GROUP BY utm_source, utm_medium, utm_campaign
-) AS ac  -- Добавлено AS ac
-ON lp.source = ac.utm_source
-AND lp.medium = ac.utm_medium
-AND lp.campaign = ac.utm_campaign
+)
+SELECT
+    sl.visit_date,
+    sl.source AS utm_source,
+    sl.medium AS utm_medium,
+    sl.campaign AS utm_campaign,
+    COUNT(DISTINCT sl.visitor_id) AS visitors_count,  
+    COALESCE(SUM(ac.daily_spent), 0) AS total_cost,
+    SUM(CASE WHEN sl.lead_id IS NOT NULL THEN 1 ELSE 0 END) AS leads_count,
+    SUM(CASE WHEN sl.status_id = 142 OR sl.closing_reason = 'Успешно реализовано' THEN 1 ELSE 0 END) AS purchases_count,
+    SUM(sl.amount) AS revenue
+FROM sessions_leads sl
+LEFT JOIN ads_cost ac 
+    ON sl.source = ac.utm_source
+    AND sl.medium = ac.utm_medium
+    AND sl.campaign = ac.utm_campaign
 GROUP BY 
-    lp.visit_date, 
-    lp.source, 
-    lp.medium, 
-    lp.campaign
+    sl.visit_date, 
+    sl.source, 
+    sl.medium, 
+    sl.campaign
 ORDER BY 
     revenue DESC NULLS LAST,
     visit_date,
-    COUNT(DISTINCT lp.visitor_id) DESC,
-    lp.source,
-    lp.medium,
-    lp.campaign
+    COUNT(DISTINCT sl.visitor_id) DESC,
+    sl.source,
+    sl.medium,
+    sl.campaign
 LIMIT 15;
