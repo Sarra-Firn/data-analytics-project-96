@@ -16,19 +16,17 @@ SELECT
         
 /*Какие каналы их приводят на сайт? Хочется видеть по дням/неделям/месяцам*/
 SELECT
-    DATE(s.visit_date) AS visit_date,  -- День
-    DATE_TRUNC('week', s.visit_date) AS visit_week,  -- Неделя
-    DATE_TRUNC('month', s.visit_date) AS visit_month,  -- Месяц
-    s.source,  -- Источник
-    s.medium,  -- Тип рекламной кампании
-    s.campaign,  -- Название рекламной кампании
-    COUNT(DISTINCT s.visitor_id) AS visitors_count  -- Количество уникальных посетителей
+    DATE(s.visit_date) AS visit_date,
+    s.source,
+    s.medium,
+    s.campaign,
+    COUNT(DISTINCT s.visitor_id) AS visitors_count
 FROM
     sessions s
 GROUP BY
-    1, 2, 3, 4, 5, 6
+    1, 2, 3, 4
 ORDER BY
-    1, 4, 5, 6;
+    1, 2, 3, 4;
 /*Сколько лидов к нам приходят?*/
 SELECT
     COUNT(DISTINCT l.visitor_id) AS total_leads
@@ -37,7 +35,7 @@ FROM
    
    
 /*Какая конверсия из клика в лид? А из лида в оплату?*/
-   WITH total_clicks AS (
+  WITH total_clicks AS (
     SELECT
         COUNT(DISTINCT visitor_id) AS total_clicks
     FROM
@@ -48,12 +46,21 @@ total_leads AS (
         COUNT(DISTINCT visitor_id) AS total_leads
     FROM
         leads
+),
+total_purchases AS (
+    SELECT
+        COUNT(DISTINCT visitor_id) AS total_purchases
+    FROM
+        leads
+    WHERE
+        status_id = 142 OR closing_reason = 'Успешно реализовано'
 )
 SELECT
-    (CAST(total_leads AS FLOAT) / total_clicks) AS click_to_lead_conversion_rate
+    (CAST(total_leads AS FLOAT) / total_clicks) AS click_to_lead_conversion_rate,
+    (CAST(total_purchases AS FLOAT) / total_leads) AS lead_to_purchase_conversion_rate
 FROM
-    total_clicks, total_leads;
-    
+    total_clicks, total_leads, total_purchases;
+
 /*Сколько мы тратим по разным каналам в динамике?*/
 
    WITH ad_costs AS (
@@ -83,15 +90,14 @@ FROM
 -- Агрегируем данные по дням/неделям/месяцам и каналам
 SELECT
     DATE(date) AS daily,
-    DATE_TRUNC('week', date) AS weekly,
-    DATE_TRUNC('month', date) AS monthly,
     source,
     medium,
     campaign,
     SUM(cost) AS total_cost
 FROM ad_costs
-GROUP BY 1, 2, 3, 4, 5, 6
-ORDER BY 1, 4, 5, 6;
+GROUP BY 1, 2, 3, 4
+ORDER BY 1, 2, 3, 4;
+
 
 /*Окупаются ли каналы?*/
 WITH 
@@ -150,94 +156,85 @@ FULL OUTER JOIN revenue_data r
 ORDER BY ROI_percent DESC NULLS LAST;
 
 /*Расчёт основных метрик*/
-WITH combined_ads AS (
+SELECT 
+        utm_source,
+        utm_medium,
+        utm_campaign,
+        SUM(daily_spent) AS daily_spent
+    FROM ya_ads
+    GROUP BY utm_source, utm_medium, utm_campaign
+
+    UNION ALL
+
     SELECT 
         utm_source,
         utm_medium,
         utm_campaign,
-        utm_content,
-        campaign_date,
-        SUM(daily_spent) AS daily_spent -- Агрегируем расходы на уровне дня
-    FROM (
-        SELECT 
-            utm_source,
-            utm_medium,
-            utm_campaign,
-            utm_content,
-            campaign_date,
-            daily_spent
-        FROM vk_ads
-        UNION ALL
-        SELECT 
-            utm_source,
-            utm_medium,
-            utm_campaign,
-            utm_content,
-            campaign_date,
-            daily_spent
-        FROM ya_ads
-    ) AS all_ads
-    GROUP BY 1,2,3,4,5
-),
+        SUM(daily_spent) AS daily_spent
+    FROM vk_ads
+    GROUP BY utm_source, utm_medium, utm_campaign;
 
-session_leads AS (
-    SELECT
-        s.visitor_id,
-        s.visit_date,
-        s.source,
-        s.medium,
+-- Подзапрос для расчета количества лидов и успешных покупок
+leads_purchases AS (
+    SELECT 
+        s.visitor_id, 
+        s.visit_date, 
+        s.source, 
+        s.medium, 
         s.campaign,
-        s.content,
-        l.lead_id,
-        l.amount,
-        l.closing_reason,
-        l.status_id
-    FROM sessions s
-    LEFT JOIN leads l 
-        ON s.visitor_id = l.visitor_id
-        AND l.created_at >= s.visit_date -- Только лиды после визита
+        CASE 
+            WHEN l.lead_id IS NOT NULL THEN 1 
+            ELSE 0 
+        END AS is_lead,
+        CASE 
+            WHEN l.status_id = 142 OR l.closing_reason = 'Успешно реализовано' THEN 1 
+            ELSE 0 
+        END AS is_purchase,
+        COALESCE(l.amount, 0) AS purchase_amount
+    FROM 
+        sessions s
+    LEFT JOIN 
+        leads l ON s.visitor_id = l.visitor_id AND s.visit_date <= l.created_at
 ),
-
-metrics AS (
-    SELECT
-        s.source as utm_source,
-        CAST(s.visit_date AS DATE) AS visit_date,
-        COUNT(DISTINCT s.visitor_id) AS visitors_count,
-        SUM(DISTINCT a.daily_spent) AS total_cost,
-        COUNT(DISTINCT s.lead_id) AS leads_count,
-        COUNT(DISTINCT CASE 
-            WHEN s.closing_reason = 'Успешно реализовано' OR s.status_id = 142 
-            THEN s.lead_id 
-        END) AS purchases_count,
-        SUM(CASE 
-            WHEN s.closing_reason = 'Успешно реализовано' OR s.status_id = 142 
-            THEN s.amount 
-        END) AS revenue
-    FROM session_leads s
-    LEFT JOIN combined_ads a 
-        ON s.source = a.utm_source
-        AND s.medium = a.utm_medium
-        AND s.campaign = a.utm_campaign
-        AND s.content = a.utm_content
-        AND CAST(s.visit_date AS DATE) = a.campaign_date
-    GROUP BY 1,2
+-- Подзапрос для агрегации данных
+aggregated_data AS (
+    SELECT 
+        lp.visit_date,
+        lp.source AS utm_source,
+        lp.medium AS utm_medium,
+        lp.campaign AS utm_campaign,
+        COUNT(DISTINCT lp.visitor_id) AS visitors_count,
+        COALESCE(SUM(ac.daily_spent), 0) AS total_cost,
+        SUM(lp.is_lead) AS leads_count,
+        SUM(lp.is_purchase) AS purchases_count,
+        SUM(lp.purchase_amount) AS revenue
+    FROM 
+        leads_purchases lp
+    LEFT JOIN 
+        ad_costs ac ON lp.source = ac.utm_source AND lp.medium = ac.utm_medium AND lp.campaign = ac.utm_campaign
+    GROUP BY 
+        lp.visit_date, 
+        lp.source, 
+        lp.medium, 
+        lp.campaign
 )
-
-SELECT
+-- Основной запрос для витрины данных
+SELECT 
     utm_source,
-    SUM(visitors_count) AS total_visitors,
+    SUM(visitors_count) AS visitors_count,
     SUM(total_cost) AS total_cost,
-    SUM(leads_count) AS total_leads,
-    SUM(purchases_count) AS total_purchases,
-    SUM(revenue) AS total_revenue,
+    SUM(leads_count) AS leads_count,
+    SUM(purchases_count) AS purchases_count,
+    SUM(revenue) AS revenue,
     ROUND(SUM(total_cost) / NULLIF(SUM(visitors_count), 0), 2) AS cpu,
     ROUND(SUM(total_cost) / NULLIF(SUM(leads_count), 0), 2) AS cpl,
     ROUND(SUM(total_cost) / NULLIF(SUM(purchases_count), 0), 2) AS cppu,
     ROUND((SUM(revenue) - SUM(total_cost)) / NULLIF(SUM(total_cost), 0) * 100, 2) AS roi
-FROM metrics
-where utm_source in ('vk', 'yandex')
+FROM aggregated_data
+WHERE utm_source IN ('vk', 'yandex')
 GROUP BY utm_source
-ORDER BY roi DESC;
+ORDER BY utm_source;
+-- Скрипт для закрытия 90% лидов
 -- Скрипт для закрытия 90% лидов
 WITH lead_times AS (
     SELECT 
@@ -254,4 +251,3 @@ AND l.created_at >= s.visit_date -- Только лиды после визит�
 SELECT 
     PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY days_to_close) AS p90_days
 FROM lead_times;
-
