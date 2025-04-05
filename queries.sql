@@ -271,3 +271,20 @@ AND ads.utm_medium = lpc.utm_medium
 AND ads.utm_campaign = lpc.utm_campaign
 WHERE ads.ads_source IS NOT NULL
 GROUP BY ads.ads_source;
+
+-- Скрипт для закрытия 90% лидов
+WITH lead_times AS (
+    SELECT 
+        EXTRACT(DAY FROM (l.created_at - s.visit_date)) AS days_to_close
+    FROM sessions s
+LEFT JOIN leads l
+ON s.visitor_id = l.visitor_id
+AND l.created_at >= s.visit_date -- Только лиды после визита
+    WHERE 
+        (l.closing_reason = 'Успешно реализовано' OR l.status_id = 142)
+        AND l.created_at IS NOT NULL
+)
+
+SELECT 
+    PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY days_to_close) AS p90_days
+FROM lead_times;
