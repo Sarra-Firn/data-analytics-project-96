@@ -1,14 +1,4 @@
-SELECT
-    lp.visit_date,
-    lp.utm_source,
-    lp.utm_medium,
-    lp.utm_campaign,
-    COUNT(DISTINCT lp.visitor_id) AS visitors_count,  
-    COALESCE(SUM(ac.daily_spent), 0) AS total_cost,
-    SUM(CASE WHEN lp.lead_id IS NOT NULL THEN 1 ELSE 0 END) AS leads_count,
-    SUM(CASE WHEN lp.status_id = 142 OR lp.closing_reason = 'Успешно реализовано' THEN 1 ELSE 0 END) AS purchases_count,
-    SUM(lp.amount) AS revenue
-FROM (
+WITH last_paid_click AS (
     SELECT
         s.visitor_id,
         s.visit_date,
@@ -25,40 +15,66 @@ FROM (
         sessions s
     LEFT JOIN leads l ON s.visitor_id = l.visitor_id AND s.visit_date <= l.created_at
     WHERE
-        s.medium NOT IN ('organic')
-) AS lp
-LEFT JOIN (
+        s.medium <> 'organic'
+),
+ads AS 
+(
     SELECT 
-        utm_source,
-        utm_medium,
-        utm_campaign,
-        SUM(daily_spent) AS daily_spent
-    FROM ya_ads
-    GROUP BY utm_source, utm_medium, utm_campaign
-
-    UNION ALL
-
-    SELECT 
+        'VK' AS ads_source,
+        campaign_date,
         utm_source,
         utm_medium,
         utm_campaign,
         SUM(daily_spent) AS daily_spent
     FROM vk_ads
-    GROUP BY utm_source, utm_medium, utm_campaign
-) AS ac  -- Добавлено AS ac
-ON lp.utm_source = ac.utm_source
-AND lp.utm_medium = ac.utm_medium
-AND lp.utm_campaign = ac.utm_campaign
-GROUP BY 
-    lp.visit_date, 
-    lp.utm_source, 
-    lp.utm_medium, 
-    lp.utm_campaign
-ORDER BY 
-    revenue DESC NULLS LAST,
-    visit_date,
-    COUNT(DISTINCT lp.visitor_id) DESC,
-    lp.utm_source,
-    lp.utm_medium,
-    lp.utm_campaign
-LIMIT 15;
+    GROUP BY 1,2,3,4,5
+
+    UNION ALL
+
+    SELECT 
+        'Yandex' AS ads_source,
+        campaign_date,
+        utm_source,
+        utm_medium,
+        utm_campaign,
+        SUM(daily_spent) AS daily_spent
+    FROM ya_ads
+    GROUP BY 1,2,3,4,5
+),
+lpc AS 
+(
+    SELECT
+        CAST(visit_date AS DATE) AS visit_date,
+        lpc.utm_source,
+        lpc.utm_medium,
+        lpc.utm_campaign,
+        COUNT(visitor_id) AS visitors_count,
+        COUNT(lead_id) AS leads_count,
+        COUNT(CASE WHEN status_id = 142 THEN 1 ELSE NULL END) AS purchases_count,
+        SUM(amount) AS revenue
+    FROM
+        last_paid_click lpc
+    WHERE
+        rn = 1
+    GROUP BY 
+        CAST(visit_date AS DATE),
+        lpc.utm_source,
+        lpc.utm_medium,
+        lpc.utm_campaign
+)
+SELECT 
+    ads.ads_source,
+    SUM(lpc.visitors_count) AS visitors_count,
+    SUM(lpc.leads_count) AS leads_count,
+    SUM(lpc.purchases_count) AS purchases_count,
+    SUM(lpc.revenue) AS revenue,
+    SUM(ads.daily_spent) AS total_cost
+FROM lpc
+LEFT JOIN ads 
+ON CAST(ads.campaign_date AS DATE) = CAST(lpc.visit_date AS DATE)
+AND ads.utm_source = lpc.utm_source
+AND ads.utm_medium = lpc.utm_medium 
+AND ads.utm_campaign = lpc.utm_campaign
+WHERE ads.ads_source IS NOT NULL
+GROUP BY ads.ads_source
+limit 15;
