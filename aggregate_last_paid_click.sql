@@ -76,5 +76,9 @@ AND ads.utm_source = lpc.utm_source
 AND ads.utm_medium = lpc.utm_medium 
 AND ads.utm_campaign = lpc.utm_campaign
 WHERE ads.ads_source IS NOT NULL
-GROUP BY ads.ads_source
+GROUP BY ads.ads_source, lpc.visit_date
+order by revenue desc NULLS LAST,
+visit_date,
+visitors_count,
+ads.ads_source
 limit 15;
