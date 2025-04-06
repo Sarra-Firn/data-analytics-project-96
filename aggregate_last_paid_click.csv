@@ -1,16 +1,16 @@
-"visit_date","utm_source","utm_medium","utm_campaign","visitors_count","total_cost","leads_count","purchases_count","revenue"
-2023-06-01 10:40:28.000,yandex,cpc,prof-frontend,1,1827336,1,1,237990
-2023-06-01 19:27:00.000,yandex,cpc,freemium,2,1003508,2,2,232766
-2023-06-01 14:39:00.000,yandex,cpc,base-frontend,1,191275,1,1,201150
-2023-06-01 04:58:00.000,vk,cpc,freemium-frontend,1,78763,1,1,189210
-2023-06-01 10:44:00.000,yandex,cpc,freemium,1,501754,1,1,188991
-2023-06-01 14:57:00.000,yandex,cpc,prof-frontend,1,1827336,1,1,180306
-2023-06-01 03:36:00.000,vk,cpc,prof-python,1,145348,1,1,178800
-2023-06-01 03:41:00.000,vk,cpc,prof-java,1,132757,1,1,178800
-2023-06-01 19:39:00.000,yandex,cpc,prof-frontend,1,1827336,1,1,167625
-2023-06-01 11:34:00.000,yandex,cpc,base-python,1,173465,1,1,160920
-2023-06-01 02:41:00.000,vk,cpc,prof-java,1,132757,1,1,151192
-2023-06-01 08:39:00.000,yandex,cpc,prof-python,2,2507216,2,1,151192
-2023-06-06 14:18:14.517,telegram,cpp,base-java,1,0,1,1,151192
-2023-06-07 16:18:04.418,telegram,cpp,base-java,1,0,1,1,151192
-2023-06-09 13:35:13.923,telegram,cpp,base-java,1,0,1,1,151192
+"ads_source","visitors_count","leads_count","purchases_count","revenue","total_cost"
+Yandex,435,422,66,5061038,219655
+VK,405,227,14,937005,13764
+VK,1035,1,0,0,26930
+VK,370,2,0,0,26860
+VK,45,1,0,0,26961
+VK,59,2,0,0,27787
+VK,62,1,0,0,25803
+VK,62,1,0,0,24112
+VK,54,2,0,0,25272
+VK,1280,0,0,,18224
+VK,1156,0,0,,18353
+VK,1206,0,0,,16046
+VK,1142,0,0,,16941
+VK,1027,0,0,,20437
+VK,978,0,0,,20514
