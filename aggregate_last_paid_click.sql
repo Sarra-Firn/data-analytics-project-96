@@ -16,32 +16,26 @@ WITH last_paid_click AS (
     LEFT JOIN leads l ON s.visitor_id = l.visitor_id AND s.visit_date <= l.created_at
     WHERE
         s.medium <> 'organic'
-),
-ads AS 
-(
-    SELECT 
-        'VK' AS ads_source,
-        campaign_date,
-        utm_source,
-        utm_medium,
-        utm_campaign,
-        SUM(daily_spent) AS daily_spent
-    FROM vk_ads
-    GROUP BY 1,2,3,4,5
-
-    UNION ALL
-
-    SELECT 
-        'Yandex' AS ads_source,
+)
+, ads as 
+(SELECT 
         campaign_date,
         utm_source,
         utm_medium,
         utm_campaign,
         SUM(daily_spent) AS daily_spent
     FROM ya_ads
-    GROUP BY 1,2,3,4,5
-),
-lpc AS 
+    GROUP BY 1,2,3,4
+    UNION ALL
+    SELECT 
+        campaign_date,
+        utm_source,
+        utm_medium,
+        utm_campaign,
+        SUM(daily_spent) AS daily_spent
+    FROM vk_ads
+    GROUP BY 1,2,3,4)
+, lpc as 
 (
     SELECT
         CAST(visit_date AS DATE) AS visit_date,
@@ -62,23 +56,27 @@ lpc AS
         lpc.utm_medium,
         lpc.utm_campaign
 )
-SELECT 
-    ads.ads_source,
+SELECT lpc.visit_date,
+    ads.utm_source,
+    ads.utm_medium,
+    ads.utm_campaign,
     SUM(lpc.visitors_count) AS visitors_count,
+    SUM(ads.daily_spent) AS total_cost,
     SUM(lpc.leads_count) AS leads_count,
     SUM(lpc.purchases_count) AS purchases_count,
-    SUM(lpc.revenue) AS revenue,
-    SUM(ads.daily_spent) AS total_cost
+    SUM(lpc.revenue) AS revenue
 FROM lpc
 LEFT JOIN ads 
 ON CAST(ads.campaign_date AS DATE) = CAST(lpc.visit_date AS DATE)
 AND ads.utm_source = lpc.utm_source
 AND ads.utm_medium = lpc.utm_medium 
 AND ads.utm_campaign = lpc.utm_campaign
-WHERE ads.ads_source IS NOT NULL
-GROUP BY ads.ads_source, lpc.visit_date
+WHERE ads.utm_source IS NOT NULL
+GROUP BY ads.utm_source, ads.utm_medium, ads.utm_campaign, lpc.visit_date
 order by revenue desc NULLS LAST,
-visit_date,
-visitors_count,
-ads.ads_source
+visit_date ASC,
+visitors_count desc,
+ads.utm_source ASC,
+ads.utm_medium ASC,
+ads.utm_campaign ASC
 limit 15;
