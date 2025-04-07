@@ -205,32 +205,26 @@ WITH last_paid_click AS (
     LEFT JOIN leads l ON s.visitor_id = l.visitor_id AND s.visit_date <= l.created_at
     WHERE
         s.medium <> 'organic'
-),
-ads AS 
-(
-    SELECT 
-        'VK' AS ads_source,
-        campaign_date,
-        utm_source,
-        utm_medium,
-        utm_campaign,
-        SUM(daily_spent) AS daily_spent
-    FROM vk_ads
-    GROUP BY 1,2,3,4,5
-
-    UNION ALL
-
-    SELECT 
-        'Yandex' AS ads_source,
+)
+, ads as 
+(SELECT 
         campaign_date,
         utm_source,
         utm_medium,
         utm_campaign,
         SUM(daily_spent) AS daily_spent
     FROM ya_ads
-    GROUP BY 1,2,3,4,5
-),
-lpc AS 
+    GROUP BY 1,2,3,4
+    UNION ALL
+    SELECT 
+        campaign_date,
+        utm_source,
+        utm_medium,
+        utm_campaign,
+        SUM(daily_spent) AS daily_spent
+    FROM vk_ads
+    GROUP BY 1,2,3,4)
+, lpc as 
 (
     SELECT
         CAST(visit_date AS DATE) AS visit_date,
@@ -251,13 +245,15 @@ lpc AS
         lpc.utm_medium,
         lpc.utm_campaign
 )
-SELECT 
-    ads.ads_source,
+SELECT lpc.visit_date,
+    ads.utm_source,
+    ads.utm_medium,
+    ads.utm_campaign,
     SUM(lpc.visitors_count) AS visitors_count,
+    SUM(ads.daily_spent) AS total_cost,
     SUM(lpc.leads_count) AS leads_count,
     SUM(lpc.purchases_count) AS purchases_count,
-    SUM(lpc.revenue) AS revenue,
-    SUM(ads.daily_spent) AS total_cost,
+    SUM(lpc.revenue) AS revenue
     -- Расчет метрик
     ROUND(SUM(ads.daily_spent) / NULLIF(SUM(lpc.visitors_count), 0), 2) AS cpu,
     ROUND(SUM(ads.daily_spent) / NULLIF(SUM(lpc.leads_count), 0), 2) AS cpl,
