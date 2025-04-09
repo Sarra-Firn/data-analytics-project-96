@@ -22,10 +22,9 @@ WITH last_paid_click AS (
         leads AS l
         ON s.visitor_id = l.visitor_id AND s.visit_date <= l.created_at
     WHERE
-        s.medium <> 'organic'
+        s.medium != 'organic'
 ),
-ads AS (
-    SELECT
+ads AS (SELECT
         CAST(campaign_date AS date) AS campaign_date,
         utm_source,
         utm_medium,
@@ -43,8 +42,7 @@ ads AS (
     FROM vk_ads
     GROUP BY 1, 2, 3, 4
 ),
-lpc AS (
-    SELECT
+lpc AS (SELECT
         lpc.utm_source,
         lpc.utm_medium,
         lpc.utm_campaign,
@@ -57,13 +55,11 @@ lpc AS (
         last_paid_click AS lpc
     WHERE
         lpc.rn = 1
-    GROUP BY
-        CAST(visit_date AS date),
+    GROUP BY CAST(visit_date AS date),
         lpc.utm_source,
         lpc.utm_medium,
         lpc.utm_campaign
 )
-
 SELECT
     lpc.visit_date,
     lpc.visitors_count,
@@ -82,11 +78,10 @@ LEFT JOIN ads
         AND lpc.utm_medium = ads.utm_medium
         AND lpc.utm_campaign = ads.utm_campaign
 --GROUP BY ads.utm_source, ads.utm_medium, ads.utm_campaign, lpc.visit_date
-ORDER BY
-    revenue DESC NULLS LAST,
-    visit_date ASC,
-    visitors_count DESC,
+ORDER BY lpc.revenue DESC NULLS LAST,
+    lpc.visit_date ASC,
+    lpc.visitors_count DESC,
     ads.utm_source ASC,
     ads.utm_medium ASC,
     ads.utm_campaign ASC
-LIMIT 15;
+	LIMIT 15;
