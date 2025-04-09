@@ -10,13 +10,21 @@ WITH last_paid_click AS (
         l.amount,
         l.closing_reason,
         l.status_id,
-        ROW_NUMBER() OVER (PARTITION BY s.visitor_id ORDER BY s.visit_date DESC) AS rn
+        ROW_NUMBER()
+            OVER (
+                PARTITION BY s.visitor_id
+                ORDER BY s.visit_date DESC
+            )
+        AS rn
     FROM
-        sessions s
-    LEFT JOIN leads l ON s.visitor_id = l.visitor_id AND s.visit_date <= l.created_at
+        sessions AS s
+    LEFT JOIN
+        leads AS l
+        ON s.visitor_id = l.visitor_id AND s.visit_date <= l.created_at
     WHERE
         s.medium NOT IN ('organic')
 )
+
 SELECT
     visitor_id,
     visit_date,
