@@ -11,10 +11,10 @@ WITH last_paid_click AS (
         l.closing_reason,
         l.status_id,
         ROW_NUMBER()
-            OVER (
-                PARTITION BY s.visitor_id
-                ORDER BY s.visit_date DESC
-            )
+								OVER (
+												PARTITION BY s.visitor_id
+                								ORDER BY s.visit_date DESC
+            					)
         AS rn
     FROM
         sessions AS s
@@ -59,8 +59,7 @@ lpc AS (
         last_paid_click AS lpc
     WHERE
         lpc.rn = 1
-    GROUP BY
-        CAST(visit_date AS date),
+    GROUP by CAST(visit_date AS date),
         lpc.utm_source,
         lpc.utm_medium,
         lpc.utm_campaign
@@ -84,8 +83,7 @@ LEFT JOIN ads
         AND lpc.utm_medium = ads.utm_medium
         AND lpc.utm_campaign = ads.utm_campaign
 --GROUP BY ads.utm_source, ads.utm_medium, ads.utm_campaign, lpc.visit_date
-ORDER BY
-    lpc.revenue DESC NULLS LAST,
+ORDER by lpc.revenue DESC NULLS LAST,
     lpc.visit_date ASC,
     lpc.visitors_count DESC,
     ads.utm_source ASC,
