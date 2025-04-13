@@ -1,18 +1,18 @@
 /*Сколько у нас пользователей заходят на сайт?*/
-SELECT COUNT(distinct s.visitor_id)
-FROM sessions s;
+SELECT COUNT(DISTINCT s.visitor_id)
+FROM sessions AS s;
 
 /*Какие каналы их приводят на сайт*/
 SELECT
-        visitor_id,
-        visit_date,
-        source AS utm_source,
-        medium AS utm_medium,
-        campaign AS utm_campaign
-    FROM
-        sessions
-    WHERE
-        medium not IN ('organic')
+    visitor_id,
+    visit_date,
+    source AS utm_source,
+    medium AS utm_medium,
+    campaign AS utm_campaign
+FROM
+    sessions
+WHERE
+    medium NOT IN ('organic');
         
 /*Какие каналы их приводят на сайт? Хочется видеть по дням/неделям/месяцам*/
 SELECT
@@ -22,49 +22,52 @@ SELECT
     s.campaign,
     COUNT(DISTINCT s.visitor_id) AS visitors_count
 FROM
-    sessions s
+    sessions AS s
 GROUP BY
     1, 2, 3, 4
 ORDER BY
     1, 2, 3, 4;
    
 /*Сколько лидов к нам приходят?*/
-SELECT
-    COUNT(DISTINCT l.visitor_id) AS total_leads
+SELECT COUNT(DISTINCT l.visitor_id) AS total_leads
 FROM
-    leads l;
+    leads AS l;
    
    
 /*Какая конверсия из клика в лид? А из лида в оплату?*/
   WITH total_clicks AS (
-    SELECT
-        COUNT(DISTINCT visitor_id) AS total_clicks
+    SELECT COUNT(DISTINCT visitor_id) AS total_clicks
     FROM
         sessions
 ),
+
 total_leads AS (
-    SELECT
-        COUNT(DISTINCT visitor_id) AS total_leads
+    SELECT COUNT(DISTINCT visitor_id) AS total_leads
     FROM
         leads
 ),
+
 total_purchases AS (
-    SELECT
-        COUNT(DISTINCT visitor_id) AS total_purchases
+    SELECT COUNT(DISTINCT visitor_id) AS total_purchases
     FROM
         leads
     WHERE
         status_id = 142 OR closing_reason = 'Успешно реализовано'
 )
+
 SELECT
-    (CAST(total_leads AS FLOAT) / total_clicks) AS click_to_lead_conversion_rate,
-    (CAST(total_purchases AS FLOAT) / total_leads) AS lead_to_purchase_conversion_rate
+    (
+        CAST(total_leads AS FLOAT) / total_clicks
+    ) AS click_to_lead_conversion_rate,
+    (
+        CAST(total_purchases AS FLOAT) / total_leads
+    ) AS lead_to_purchase_conversion_rate
 FROM
     total_clicks, total_leads, total_purchases;
 
 /*Сколько мы тратим по разным каналам в динамике?*/
 
-   WITH ad_costs AS (
+  WITH ad_costs AS (
     -- Объединяем данные из vk_ads
     SELECT
         campaign_date AS date,
@@ -113,16 +116,23 @@ WITH last_paid_click AS (
         l.amount,
         l.closing_reason,
         l.status_id,
-        ROW_NUMBER() OVER (PARTITION BY s.visitor_id ORDER BY s.visit_date DESC) AS rn
+        ROW_NUMBER()
+            OVER (
+                PARTITION BY s.visitor_id
+                ORDER BY s.visit_date DESC
+            )
+        AS rn
     FROM
-        sessions s
-    LEFT JOIN leads l ON s.visitor_id = l.visitor_id AND s.visit_date <= l.created_at
+        sessions AS s
+    LEFT JOIN
+        leads AS l
+        ON s.visitor_id = l.visitor_id AND s.visit_date <= l.created_at
     WHERE
         s.medium <> 'organic'
 ),
-ads AS 
-(
-    SELECT 
+
+ads AS (
+    SELECT
         'VK' AS ads_source,
         campaign_date,
         utm_source,
@@ -130,11 +140,11 @@ ads AS
         utm_campaign,
         SUM(daily_spent) AS daily_spent
     FROM vk_ads
-    GROUP BY 1,2,3,4,5
+    GROUP BY 1, 2, 3, 4, 5
 
     UNION ALL
 
-    SELECT 
+    SELECT
         'Yandex' AS ads_source,
         campaign_date,
         utm_source,
@@ -142,47 +152,71 @@ ads AS
         utm_campaign,
         SUM(daily_spent) AS daily_spent
     FROM ya_ads
-    GROUP BY 1,2,3,4,5
+    GROUP BY 1, 2, 3, 4, 5
 ),
-lpc AS 
-(
+
+lpc AS (
     SELECT
-        CAST(visit_date AS DATE) AS visit_date,
         lpc.utm_source,
         lpc.utm_medium,
         lpc.utm_campaign,
-        COUNT(visitor_id) AS visitors_count,
-        COUNT(lead_id) AS leads_count,
-        COUNT(CASE WHEN status_id = 142 THEN 1 ELSE NULL END) AS purchases_count,
-        SUM(amount) AS revenue
+        CAST(visit_date AS DATE) AS visit_date,
+        COUNT(lpc.visitor_id) AS visitors_count,
+        COUNT(lpc.lead_id) AS leads_count,
+        COUNT(
+            CASE WHEN lpc.status_id = 142 THEN 1 END
+        ) AS purchases_count,
+        SUM(lpc.amount) AS revenue
     FROM
-        last_paid_click lpc
+        last_paid_click AS lpc
     WHERE
-        rn = 1
-    GROUP BY 
+        lpc.rn = 1
+    GROUP BY
         CAST(visit_date AS DATE),
         lpc.utm_source,
         lpc.utm_medium,
         lpc.utm_campaign
 )
-SELECT 
+
+SELECT
     ads.ads_source,
     SUM(lpc.visitors_count) AS visitors_count,
     SUM(lpc.leads_count) AS leads_count,
     SUM(lpc.purchases_count) AS purchases_count,
     SUM(lpc.revenue) AS revenue,
     SUM(ads.daily_spent) AS total_cost,
-    CASE 
-        WHEN ROUND(((SUM(lpc.revenue) - SUM(ads.daily_spent)) / NULLIF(SUM(ads.daily_spent), 0)) * 100, 2) > 0 THEN 'Окупается'
-        WHEN ROUND(((SUM(lpc.revenue) - SUM(ads.daily_spent)) / NULLIF(SUM(ads.daily_spent), 0)) * 100, 2) = 0 THEN 'Нейтрально'
+    CASE
+        WHEN
+            ROUND(
+                (
+                    (SUM(lpc.revenue) - SUM(ads.daily_spent))
+                    / NULLIF(SUM(ads.daily_spent), 0)
+                )
+                * 100,
+                2
+            )
+            > 0
+            THEN 'Окупается'
+        WHEN
+            ROUND(
+                (
+                    (SUM(lpc.revenue) - SUM(ads.daily_spent))
+                    / NULLIF(SUM(ads.daily_spent), 0)
+                )
+                * 100,
+                2
+            )
+            = 0
+            THEN 'Нейтрально'
         ELSE 'Не окупается'
     END AS profitability
 FROM lpc
-LEFT JOIN ads 
-ON CAST(ads.campaign_date AS DATE) = CAST(lpc.visit_date AS DATE)
-AND ads.utm_source = lpc.utm_source
-AND ads.utm_medium = lpc.utm_medium 
-AND ads.utm_campaign = lpc.utm_campaign
+LEFT JOIN ads
+    ON
+        CAST(ads.campaign_date AS DATE) = CAST(lpc.visit_date AS DATE)
+        AND lpc.utm_source = ads.utm_source
+        AND lpc.utm_medium = ads.utm_medium
+        AND lpc.utm_campaign = ads.utm_campaign
 WHERE ads.ads_source IS NOT NULL
 GROUP BY ads.ads_source;
 
