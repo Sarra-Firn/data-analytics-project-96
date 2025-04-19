@@ -50,7 +50,7 @@ lpc AS (
         lpc.utm_source,
         lpc.utm_medium,
         lpc.utm_campaign,
-        CAST(s.visit_date AS date) AS visit_date,
+        CAST(visit_date AS date) AS visit_date,
         COUNT(lpc.visitor_id) AS visitors_count,
         COUNT(lpc.lead_id) AS leads_count,
         SUM(CASE WHEN lpc.status_id = 142 THEN 1 ELSE 0 END) AS purchases_count,
@@ -60,7 +60,7 @@ lpc AS (
     WHERE
         lpc.rn = 1
     GROUP BY
-        CAST(s.visit_date AS date),
+        CAST(lpc.visit_date AS date),
         lpc.utm_source,
         lpc.utm_medium,
         lpc.utm_campaign
