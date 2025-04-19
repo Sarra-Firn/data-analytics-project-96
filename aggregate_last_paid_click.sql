@@ -60,10 +60,10 @@ lpc AS (
     WHERE
         lpc.rn = 1
     GROUP BY
-        CAST(last_paid_click.visit_date AS date),
-        last_paid_click.utm_source,
-        last_paid_click.utm_medium,
-        last_paid_click.utm_campaign
+        CAST(lpc.visit_date AS date),
+        lpc.utm_source,
+        lpc.utm_medium,
+        lpc.utm_campaign
 )
 
 SELECT
