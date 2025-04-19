@@ -50,7 +50,7 @@ lpc AS (
         lpc.utm_source,
         lpc.utm_medium,
         lpc.utm_campaign,
-        CAST(visit_date AS date) AS visit_date,
+        CAST(s.visit_date AS date) AS visit_date,
         COUNT(lpc.visitor_id) AS visitors_count,
         COUNT(lpc.lead_id) AS leads_count,
         SUM(CASE WHEN lpc.status_id = 142 THEN 1 ELSE 0 END) AS purchases_count,
@@ -60,7 +60,7 @@ lpc AS (
     WHERE
         lpc.rn = 1
     GROUP BY
-        CAST(lpc.visit_date AS date),
+        CAST(s.visit_date AS date),
         lpc.utm_source,
         lpc.utm_medium,
         lpc.utm_campaign
@@ -88,8 +88,7 @@ ORDER BY
     lpc.revenue DESC NULLS LAST,
     lpc.visit_date ASC,
     lpc.visitors_count DESC,
-    lpc.utm_source,
-    lpc.utm_medium,
-    lpc.utm_campaign
+    lpc.utm_source ASC,
+    lpc.utm_medium ASC,
+    lpc.utm_campaign ASC
 LIMIT 15;
-
