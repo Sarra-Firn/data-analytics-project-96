@@ -60,7 +60,7 @@ lpc AS (
     WHERE
         lpc.rn = 1
     GROUP BY
-        lpc.CAST(visit_date AS date),
+        CAST(lpc.visit_date AS date),
         lpc.utm_source,
         lpc.utm_medium,
         lpc.utm_campaign
@@ -88,7 +88,8 @@ ORDER BY
     lpc.revenue DESC NULLS LAST,
     lpc.visit_date ASC,
     lpc.visitors_count DESC,
-    ads.utm_source ASC,
-    ads.utm_medium ASC,
-    ads.utm_campaign ASC
+    lpc.utm_source,
+    lpc.utm_medium,
+    lpc.utm_campaign
 LIMIT 15;
+
