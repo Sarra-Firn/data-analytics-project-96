@@ -28,7 +28,7 @@ GROUP BY
 
 /*Сколько лидов к нам приходят?*/
 SELECT COUNT(DISTINCT l.visitor_id) AS total_leads
-FROM LEADS AS l;
+FROM leads AS l;
 
 /*Сколько мы тратим по разным каналам в динамике?*/
 SELECT
@@ -164,5 +164,5 @@ SELECT
     ) AS prc
 FROM sessions AS s
 LEFT JOIN leads AS l
-on s.visitor_id = l.visitor_id
-AND s.visit_date <= l.created_at; -- Только лиды после визита
+	ON s.visitor_id = l.visitor_id
+	AND s.visit_date <= l.created_at; -- Только лиды после визита
