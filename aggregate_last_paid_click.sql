@@ -47,18 +47,18 @@ ads AS (
 
 lpc AS (
     SELECT
-        lpc.utm_source,
-        lpc.utm_medium,
-        lpc.utm_campaign,
+        t.utm_source,
+        t.utm_medium,
+        t.utm_campaign,
         CAST(t.visit_date AS date) AS visit_date,
         COUNT(t.visitor_id) AS visitors_count,
         COUNT(t.lead_id) AS leads_count,
-        SUM(CASE WHEN lpc.status_id = 142 THEN 1 ELSE 0 END) AS purchases_count,
+        SUM(CASE WHEN t.status_id = 142 THEN 1 ELSE 0 END) AS purchases_count,
         SUM(t.amount) AS revenue
     FROM
         tab AS t
     WHERE
-        lpc.rn = 1
+        t.rn = 1
     GROUP BY
         CAST(t.visit_date AS date),
         t.utm_source,
