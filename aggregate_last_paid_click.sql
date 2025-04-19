@@ -60,7 +60,7 @@ lpc AS (
     WHERE
         lpc.rn = 1
     GROUP BY
-        CAST(lpc.visit_date AS date),
+        lpc.CAST(lpc.visit_date AS date),
         lpc.utm_source,
         lpc.utm_medium,
         lpc.utm_campaign
