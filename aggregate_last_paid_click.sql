@@ -1,4 +1,4 @@
-WITH last_paid_click AS (
+WITH tab AS (
     SELECT
         s.visitor_id,
         s.visit_date,
@@ -50,20 +50,20 @@ lpc AS (
         lpc.utm_source,
         lpc.utm_medium,
         lpc.utm_campaign,
-        CAST(lpc.visit_date AS date) AS visit_date,
-        COUNT(lpc.visitor_id) AS visitors_count,
-        COUNT(lpc.lead_id) AS leads_count,
+        CAST(t.visit_date AS date) AS visit_date,
+        COUNT(t.visitor_id) AS visitors_count,
+        COUNT(t.lead_id) AS leads_count,
         SUM(CASE WHEN lpc.status_id = 142 THEN 1 ELSE 0 END) AS purchases_count,
-        SUM(lpc.amount) AS revenue
+        SUM(t.amount) AS revenue
     FROM
-        last_paid_click AS lpc
+        tab AS t
     WHERE
         lpc.rn = 1
     GROUP BY
-        CAST(lpc.visit_date AS date),
-        lpc.utm_source,
-        lpc.utm_medium,
-        lpc.utm_campaign
+        CAST(t.visit_date AS date),
+        t.utm_source,
+        t.utm_medium,
+        t.utm_campaign
 )
 
 SELECT
