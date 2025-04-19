@@ -27,16 +27,8 @@ GROUP BY
     campaign;
 
 /*Сколько лидов к нам приходят?*/
-with tab as 
-(SELECT
-COUNT(DISTINCT SESSIONS.VISITOR_ID) AS VIS,
-COUNT(DISTINCT LEADS.LEAD_ID) AS LID,
-COUNT(DISTINCT LEADS.LEAD_ID) FILTER (LEAD_STATUS = 'УСПЕШНАЯ ПРОДАЖА') AS POK
-FROM SESSIONS
-LEFT JOIN LEADS 
-ON LEADS.VISITOR_ID = SESSIONS.VISITOR_ID
-)
-select ;
+SELECT COUNT(DISTINCT l.visitor_id) AS total_leads
+from leads AS l;
 
 /*Сколько мы тратим по разным каналам в динамике?*/
 SELECT
