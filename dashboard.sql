@@ -164,8 +164,7 @@ SELECT
     ) AS prc
 FROM sessions AS s
 LEFT JOIN leads AS l
-    ON
-	    s.visitor_id = l.visitor_id
+    on
+        s.visitor_id = l.visitor_id
         AND
         s.visit_date <= l.created_at; -- Только лиды после визита
-	
