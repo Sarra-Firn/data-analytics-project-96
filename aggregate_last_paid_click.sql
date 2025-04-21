@@ -14,11 +14,13 @@ WITH last_paid_click AS (
             PARTITION BY s.visitor_id
             ORDER BY s.visit_date DESC
         ) AS rn
-    FROM sessions AS s
-    LEFT JOIN leads AS l
-        ON s.visitor_id = l.visitor_id
-        AND s.visit_date <= l.created_at
-    WHERE s.medium != 'organic'
+    FROM
+            sessions AS s
+        LEFT JOIN leads AS l
+            ON s.visitor_id = l.visitor_id
+            AND s.visit_date <= l.created_at
+    WHERE
+        s.medium != 'organic'
 ),
 
 ads AS (
@@ -75,11 +77,11 @@ SELECT
     l.purchases_count,
     l.revenue
 FROM lpc AS l
-        LEFT JOIN ads
-        ON ads.campaign_date = l.visit_date
-        AND l.utm_source = ads.utm_source
-        AND l.utm_medium = ads.utm_medium
-        AND l.utm_campaign = ads.utm_campaign
+LEFT JOIN ads
+    ON ads.campaign_date = l.visit_date
+    AND l.utm_source = ads.utm_source
+    AND l.utm_medium = ads.utm_medium
+    AND l.utm_campaign = ads.utm_campaign
 ORDER BY
     l.revenue DESC NULLS LAST,
     l.visit_date ASC,
