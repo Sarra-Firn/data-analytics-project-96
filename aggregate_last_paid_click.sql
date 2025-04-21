@@ -17,7 +17,7 @@ WITH last_paid_click AS (
     FROM
         sessions AS s
     LEFT JOIN leads AS l
-        ON 
+        ON
             s.visitor_id = l.visitor_id
             AND s.visit_date <= l.created_at
     WHERE
@@ -79,7 +79,7 @@ SELECT
     l.revenue
 FROM lpc AS l
 LEFT JOIN ads
-    ON 
+    ON
         ads.campaign_date = l.visit_date
         AND l.utm_source = ads.utm_source
         AND l.utm_medium = ads.utm_medium
