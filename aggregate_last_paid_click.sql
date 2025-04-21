@@ -15,8 +15,8 @@ WITH last_paid_click AS (
             ORDER BY s.visit_date DESC
         ) AS rn
     FROM
-            sessions AS s
-        LEFT JOIN leads AS l
+        sessions AS s
+    LEFT JOIN leads AS l
             ON s.visitor_id = l.visitor_id
             AND s.visit_date <= l.created_at
     WHERE
@@ -78,10 +78,10 @@ SELECT
     l.revenue
 FROM lpc AS l
 LEFT JOIN ads
-    ON ads.campaign_date = l.visit_date
-    AND l.utm_source = ads.utm_source
-    AND l.utm_medium = ads.utm_medium
-    AND l.utm_campaign = ads.utm_campaign
+        ON ads.campaign_date = l.visit_date
+        AND l.utm_source = ads.utm_source
+        AND l.utm_medium = ads.utm_medium
+        AND l.utm_campaign = ads.utm_campaign
 ORDER BY
     l.revenue DESC NULLS LAST,
     l.visit_date ASC,
