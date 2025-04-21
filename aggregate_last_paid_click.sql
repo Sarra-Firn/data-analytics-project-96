@@ -16,7 +16,8 @@ WITH last_paid_click AS (
         ) AS rn
     FROM sessions AS s
     LEFT JOIN leads AS l
-        ON s.visitor_id = l.visitor_id AND s.visit_date <= l.created_at
+        ON s.visitor_id = l.visitor_id
+        AND s.visit_date <= l.created_at
     WHERE s.medium != 'organic'
 ),
 
@@ -50,7 +51,9 @@ lpc AS (
         CAST(lpc_data.visit_date AS date) AS visit_date,
         COUNT(lpc_data.visitor_id) AS visitors_count,
         COUNT(lpc_data.lead_id) AS leads_count,
-        SUM(CASE WHEN lpc_data.status_id = 142 THEN 1 ELSE 0 END) AS purchases_count,
+        SUM(
+            CASE WHEN lpc_data.status_id = 142 THEN 1 ELSE 0 END
+        ) AS purchases_count,
         SUM(lpc_data.amount) AS revenue
     FROM last_paid_click AS lpc_data
     WHERE lpc_data.rn = 1
@@ -72,11 +75,11 @@ SELECT
     l.purchases_count,
     l.revenue
 FROM lpc AS l
-LEFT JOIN ads
-    ON ads.campaign_date = l.visit_date
-    AND l.utm_source = ads.utm_source
-    AND l.utm_medium = ads.utm_medium
-    AND l.utm_campaign = ads.utm_campaign
+        LEFT JOIN ads
+        ON ads.campaign_date = l.visit_date
+        AND l.utm_source = ads.utm_source
+        AND l.utm_medium = ads.utm_medium
+        AND l.utm_campaign = ads.utm_campaign
 ORDER BY
     l.revenue DESC NULLS LAST,
     l.visit_date ASC,
